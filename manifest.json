@@ -6,7 +6,7 @@
   "permissions": ["identity"],
   "host_permissions": ["https://www.googleapis.com/*"],
   "oauth2": {
-    "client_id": "50495197419-4n9c8apstngmgk0u4s9sd3k72c1v8fn5.apps.googleusercontent.com",
+    "client_id": "50495197419-khgn453q4tacpfiaku4hgq2ejjpjoitc.apps.googleusercontent.com",
     
     "scopes": ["https://www.googleapis.com/auth/calendar.events"]
   },
