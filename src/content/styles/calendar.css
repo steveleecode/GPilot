@@ -100,15 +100,15 @@
 }
 
 .gcbulk-toolbar-count {
+  flex: 0 0 auto;
   min-width: 72px;
   white-space: nowrap;
 }
 
 .gcbulk-toolbar-status {
   display: -webkit-box;
-  min-width: 0;
-  overflow: hidden;
   flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   color: var(--gcbulk-text-secondary);
   font-weight: 400;
@@ -124,6 +124,7 @@
 
 .gcbulk-toolbar-button,
 .gcbulk-confirm-button {
+  flex: 0 0 auto;
   min-height: 32px;
   padding: 0 12px;
   color: var(--gcbulk-google-blue);
