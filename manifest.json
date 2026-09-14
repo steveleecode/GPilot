@@ -3,6 +3,20 @@
   "name": "Calendar Bulk Select",
   "version": "0.1.0",
   "description": "Adds lightweight bulk selection controls to Google Calendar.",
+  "permissions": ["identity"],
+  "host_permissions": ["https://www.googleapis.com/*"],
+  "oauth2": {
+    "client_id": "50495197419-4n9c8apstngmgk0u4s9sd3k72c1v8fn5.apps.googleusercontent.com",
+    
+    "scopes": ["https://www.googleapis.com/auth/calendar.events"]
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Calendar Bulk Select",
+    "default_popup": "popup.html"
+  },
   "content_scripts": [
     {
       "matches": ["https://calendar.google.com/*"],

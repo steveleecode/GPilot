@@ -18,7 +18,7 @@ export class ConfirmDialog {
       const message = document.createElement("p");
       message.className = "gcbulk-confirm-message";
       message.textContent =
-        "Deletion will continue only when this Calendar layout can be handled safely.";
+        "The selected events will be deleted from Google Calendar. This cannot be undone.";
 
       const actions = document.createElement("div");
       actions.className = "gcbulk-confirm-actions";

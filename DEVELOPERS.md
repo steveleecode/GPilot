@@ -11,6 +11,31 @@ extension from the Chrome Web Store link in the [main README](README.md).
 
 ## Build from source
 
+Deletion uses the official Google Calendar API and Chrome's OAuth integration.
+Before building a deletion-enabled development copy:
+
+1. Create or select a project in Google Cloud and enable the Google Calendar API.
+2. Configure its OAuth consent screen. While the app is in testing, add your
+   Google account as a test user.
+3. In Google Cloud Credentials, create an OAuth client of type **Chrome app**.
+   Use the extension ID shown for GPilot on `chrome://extensions`.
+4. Build with that client ID:
+
+```bash
+GPILOT_GOOGLE_OAUTH_CLIENT_ID="YOUR_CLIENT_ID.apps.googleusercontent.com" npm run build
+```
+
+The OAuth client ID is public application configuration, not a client secret.
+Never add a client secret to this extension.
+
+After loading the build, click GPilot's toolbar icon and choose **Connect Google
+Calendar**. Chrome opens Google's authorization screen for the Calendar Events
+scope. The same authorization flow is also available when Delete is used before
+connecting.
+
+For a selection-only build, the ordinary build command still works, but Delete
+will report that OAuth is not configured.
+
 ```bash
 npm ci
 npm run typecheck
@@ -65,7 +90,8 @@ interactive role. Every uncertain selector is centralized and marked with a
 `TODO(calendar-selector)` in `GoogleCalendarAdapter.ts`.
 
 Selection state, event decoration, the toolbar, keyboard clearing, confirmation,
-and the bulk-action pipeline are implemented. Automatic deletion intentionally
-stops with a visible message and changes nothing until Calendar's event-opening,
-delete-button, and completion selectors have been verified across supported
-views. No private network request is made.
+and the bulk-action pipeline are implemented. Deletion runs in the MV3 background
+service worker through `chrome.identity` and the official Calendar Events delete
+endpoint. The adapter conservatively decodes Calendar's rendered event identity;
+unknown identifier shapes are refused instead of guessed. No private network
+request is made.

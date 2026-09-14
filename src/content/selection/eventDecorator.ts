@@ -62,21 +62,30 @@ export class EventDecorator {
     });
   }
 
-  pruneStale(observationRoot: HTMLElement | null): void {
+  pruneStale(
+    observationRoot: HTMLElement | null,
+    visibleEvents: readonly SelectedCalendarEvent[]
+  ): void {
+    const visibleElements = new Set(visibleEvents.map(({ element }) => element));
+
     for (const [element, decoratedEvent] of this.decorated) {
       const isOutsideCalendar =
         observationRoot !== null && !observationRoot.contains(element);
-      if (!element.isConnected || isOutsideCalendar) {
+      const isNoLongerAnEvent = !visibleElements.has(element);
+      if (!element.isConnected || isOutsideCalendar || isNoLongerAnEvent) {
         if (this.pointerHoveredElement === element) {
           this.setPointerHoveredElement(null);
         }
+        element.classList.remove("gcbulk-event-host", "gcbulk-selected");
         decoratedEvent.circle.destroy();
         this.decorated.delete(element);
         debugLog("Calendar event overlay removed", {
           normalizedId: decoratedEvent.id,
           reason: !element.isConnected
             ? "Calendar event host disconnected"
-            : "Calendar event host left the active Calendar surface"
+            : isOutsideCalendar
+              ? "Calendar event host left the active Calendar surface"
+              : "Element is no longer an eligible Calendar API event"
         });
         continue;
       }

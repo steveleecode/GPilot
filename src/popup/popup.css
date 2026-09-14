@@ -1,0 +1,93 @@
+:root {
+  color-scheme: light dark;
+  font-family: "Google Sans", Roboto, Arial, sans-serif;
+}
+
+body {
+  width: 320px;
+  margin: 0;
+  color: #202124;
+  background: #fff;
+}
+
+.gcbulk-popup {
+  padding: 18px;
+}
+
+.gcbulk-popup-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.gcbulk-popup-description,
+.gcbulk-popup-status,
+.gcbulk-popup-privacy {
+  margin: 0 0 14px;
+  color: #5f6368;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.gcbulk-popup-status {
+  min-height: 19px;
+  color: #202124;
+}
+
+.gcbulk-popup-status[data-state="error"] {
+  color: #b3261e;
+}
+
+.gcbulk-popup-status[data-state="connected"] {
+  color: #137333;
+}
+
+.gcbulk-popup-connect {
+  min-height: 36px;
+  margin-bottom: 14px;
+  padding: 0 16px;
+  color: #fff;
+  font: 500 14px/20px "Google Sans", Roboto, Arial, sans-serif;
+  background: #1a73e8;
+  border: 0;
+  border-radius: 18px;
+  cursor: pointer;
+}
+
+.gcbulk-popup-connect:hover:not(:disabled) {
+  background: #185abc;
+}
+
+.gcbulk-popup-connect:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.gcbulk-popup-privacy {
+  margin-bottom: 0;
+  font-size: 11px;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    color: #e8eaed;
+    background: #202124;
+  }
+
+  .gcbulk-popup-description,
+  .gcbulk-popup-privacy {
+    color: #bdc1c6;
+  }
+
+  .gcbulk-popup-status {
+    color: #e8eaed;
+  }
+
+  .gcbulk-popup-status[data-state="connected"] {
+    color: #81c995;
+  }
+
+  .gcbulk-popup-status[data-state="error"] {
+    color: #f28b82;
+  }
+}

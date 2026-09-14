@@ -71,9 +71,8 @@ export class CalendarObserver {
       debugLog("Calendar observation root replaced; rebinding observer");
       this.bindToRoot(currentRoot);
     }
-    this.decorator.pruneStale(currentRoot);
-
     const normalizedEvents = this.adapter.findEvents();
+    this.decorator.pruneStale(currentRoot, normalizedEvents);
     for (const event of normalizedEvents) {
       this.decorator.decorate(event);
     }

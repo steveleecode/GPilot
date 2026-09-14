@@ -1,4 +1,4 @@
-import { cp, mkdir, rm } from "node:fs/promises";
+import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 
@@ -8,9 +8,13 @@ await rm(outputDirectory, { recursive: true, force: true });
 await mkdir(outputDirectory, { recursive: true });
 
 await build({
-  entryPoints: [fileURLToPath(new URL("../src/content/index.ts", import.meta.url))],
+  entryPoints: {
+    content: fileURLToPath(new URL("../src/content/index.ts", import.meta.url)),
+    background: fileURLToPath(new URL("../src/background/index.ts", import.meta.url)),
+    popup: fileURLToPath(new URL("../src/popup/index.ts", import.meta.url))
+  },
   bundle: true,
-  outfile: fileURLToPath(new URL("content.js", outputDirectory)),
+  outdir: fileURLToPath(outputDirectory),
   format: "iife",
   platform: "browser",
   target: "chrome120",
@@ -19,11 +23,30 @@ await build({
   legalComments: "none"
 });
 
+const manifest = JSON.parse(
+  await readFile(new URL("../manifest.json", import.meta.url), "utf8")
+);
+const oauthClientId = process.env.GPILOT_GOOGLE_OAUTH_CLIENT_ID?.trim();
+if (oauthClientId) {
+  manifest.oauth2.client_id = oauthClientId;
+}
+
 await Promise.all([
-  cp(new URL("../manifest.json", import.meta.url), new URL("manifest.json", outputDirectory)),
+  writeFile(
+    new URL("manifest.json", outputDirectory),
+    `${JSON.stringify(manifest, null, 2)}\n`
+  ),
   cp(
     new URL("../src/content/styles/calendar.css", import.meta.url),
     new URL("calendar.css", outputDirectory)
+  ),
+  cp(
+    new URL("../src/popup/popup.html", import.meta.url),
+    new URL("popup.html", outputDirectory)
+  ),
+  cp(
+    new URL("../src/popup/popup.css", import.meta.url),
+    new URL("popup.css", outputDirectory)
   )
 ]);
 

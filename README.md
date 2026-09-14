@@ -1,8 +1,8 @@
 # Calendar Bulk Select
 
 A lightweight Chrome extension that adds bulk-selection controls to Google
-Calendar. It uses native browser APIs and does not require a backend or access to
-undocumented Google APIs.
+Calendar. It uses native browser APIs and the official Google Calendar API. It
+does not require a backend or access undocumented Google network endpoints.
 
 ## Install
 

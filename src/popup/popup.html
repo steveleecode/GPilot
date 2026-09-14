@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Calendar Bulk Select</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="gcbulk-popup">
+      <h1 class="gcbulk-popup-title">Calendar Bulk Select</h1>
+      <p class="gcbulk-popup-description">
+        Connect Google Calendar to delete selected events using the official API.
+      </p>
+      <p class="gcbulk-popup-status" role="status" aria-live="polite" aria-atomic="true">
+        Checking access…
+      </p>
+      <button class="gcbulk-popup-connect" type="button" disabled>
+        Connect Google Calendar
+      </button>
+      <p class="gcbulk-popup-privacy">
+        GPilot requests event access only. It has no backend and does not store your calendar data.
+      </p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

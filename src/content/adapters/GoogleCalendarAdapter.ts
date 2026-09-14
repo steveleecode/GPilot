@@ -1,10 +1,12 @@
 import type { CalendarAdapter } from "./CalendarAdapter";
 import type {
+  CalendarApiEventReference,
   CalendarDeleteResult,
   CalendarEventMetadata,
   SelectedCalendarEvent
 } from "../../shared/types";
 import { debugLog } from "../../shared/constants";
+import { GoogleCalendarApiClient } from "../api/GoogleCalendarApiClient";
 
 type CalendarLayout = "day-week" | "month" | "unknown";
 
@@ -46,6 +48,11 @@ export class GoogleCalendarAdapter implements CalendarAdapter {
   private static readonly INTERACTIVE_DESCENDANT_SELECTOR =
     '[role="button"],button,[tabindex]:not([tabindex="-1"])';
 
+  private static readonly TASK_ARIA_LABEL_PATTERN = /^task\s*:/i;
+  private static readonly TASK_EVENT_ID_PREFIX = "tasks_";
+
+  constructor(private readonly apiClient = new GoogleCalendarApiClient()) {}
+
   getObservationRoot(): HTMLElement | null {
     return document.querySelector<HTMLElement>(
       GoogleCalendarAdapter.CALENDAR_ROOT_SELECTOR
@@ -72,8 +79,24 @@ export class GoogleCalendarAdapter implements CalendarAdapter {
         continue;
       }
 
+      if (evidence.rawId.startsWith(GoogleCalendarAdapter.TASK_EVENT_ID_PREFIX)) {
+        debugLog("Calendar event candidate rejected", {
+          reason: "Google Tasks use task IDs, not Google Calendar API event IDs",
+          rawId: evidence.rawId
+        });
+        continue;
+      }
+
       const eventElement = this.resolveInteractiveEventElement(attributeElement);
       if (!eventElement || normalizedByElement.has(eventElement)) {
+        continue;
+      }
+
+      if (this.isTaskElement(eventElement, attributeElement)) {
+        debugLog("Calendar event candidate rejected", {
+          reason: "Google Tasks items use their own completion control and are not Calendar API events",
+          rawId: evidence.rawId
+        });
         continue;
       }
 
@@ -85,12 +108,21 @@ export class GoogleCalendarAdapter implements CalendarAdapter {
         continue;
       }
 
-      const id = this.normalizeEventId(evidence);
+      const apiReference = this.getApiReference(evidence);
+      if (!apiReference) {
+        debugLog("Calendar event candidate rejected", {
+          reason: "The item does not expose a validated Google Calendar API reference",
+          rawId: evidence.rawId
+        });
+        continue;
+      }
+
+      const id = this.normalizeEventId(evidence, apiReference);
       normalizedByElement.set(eventElement, {
         event: {
           id,
           element: eventElement,
-          ...this.getEventMetadata(eventElement, attributeElement)
+          ...this.getEventMetadata(eventElement, attributeElement, apiReference)
         },
         evidence,
         layout: this.inferLayout(eventElement)
@@ -109,6 +141,7 @@ export class GoogleCalendarAdapter implements CalendarAdapter {
       debugLog("Calendar event identified", {
         reason: evidence.reason,
         normalizedId: event.id,
+        apiReferenceResolved: event.apiReference !== undefined,
         layout,
         visualRepresentations: representationCountById.get(event.id) ?? 1
       });
@@ -171,6 +204,56 @@ export class GoogleCalendarAdapter implements CalendarAdapter {
     return tabIndex !== null && tabIndex !== "-1";
   }
 
+  private isTaskElement(
+    eventElement: HTMLElement,
+    attributeElement: HTMLElement
+  ): boolean {
+    const semanticElements = new Set<HTMLElement>([eventElement, attributeElement]);
+    for (const root of [eventElement, attributeElement]) {
+      const interactiveAncestor = root.closest<HTMLElement>(
+        GoogleCalendarAdapter.INTERACTIVE_DESCENDANT_SELECTOR
+      );
+      if (interactiveAncestor) {
+        semanticElements.add(interactiveAncestor);
+      }
+
+      for (const descendant of root.querySelectorAll<HTMLElement>(
+        '[aria-label],[aria-labelledby],[role="button"],button'
+      )) {
+        semanticElements.add(descendant);
+      }
+    }
+
+    const semanticText = new Set<string>();
+    for (const element of semanticElements) {
+      for (const value of [
+        element.getAttribute("aria-label"),
+        element.getAttribute("title"),
+        element.textContent,
+        element.innerText
+      ]) {
+        if (value?.trim()) {
+          semanticText.add(value.trim());
+        }
+      }
+
+      const labelledBy = element.getAttribute("aria-labelledby")?.trim();
+      if (!labelledBy) {
+        continue;
+      }
+      for (const id of labelledBy.split(/\s+/)) {
+        const label = document.getElementById(id)?.textContent?.trim();
+        if (label) {
+          semanticText.add(label);
+        }
+      }
+    }
+
+    return Array.from(semanticText).some((text) =>
+      GoogleCalendarAdapter.TASK_ARIA_LABEL_PATTERN.test(text)
+    );
+  }
+
   private isVisibleEventElement(element: HTMLElement, root: HTMLElement): boolean {
     if (!element.isConnected || !root.contains(element)) {
       return false;
@@ -183,7 +266,14 @@ export class GoogleCalendarAdapter implements CalendarAdapter {
     return element.getClientRects().length > 0;
   }
 
-  private normalizeEventId(evidence: EventEvidence): string {
+  private normalizeEventId(
+    evidence: EventEvidence,
+    apiReference: CalendarApiEventReference | undefined
+  ): string {
+    if (apiReference) {
+      return `google-calendar-api:${apiReference.calendarId}:${apiReference.eventId}`;
+    }
+
     // Whitespace normalization keeps the same Calendar-provided identity stable
     // through harmless rerenders while preserving occurrence-specific content.
     const stableValue = evidence.rawId.replace(/\s+/g, " ");
@@ -192,7 +282,8 @@ export class GoogleCalendarAdapter implements CalendarAdapter {
 
   private getEventMetadata(
     eventElement: HTMLElement,
-    attributeElement: HTMLElement
+    attributeElement: HTMLElement,
+    apiReference: CalendarApiEventReference | undefined
   ): CalendarEventMetadata {
     const title = this.firstNonEmptyAttribute(
       eventElement,
@@ -216,8 +307,64 @@ export class GoogleCalendarAdapter implements CalendarAdapter {
     return {
       ...(title ? { title } : {}),
       ...(startTime ? { startTime } : {}),
-      ...(endTime ? { endTime } : {})
+      ...(endTime ? { endTime } : {}),
+      ...(apiReference ? { apiReference } : {})
     };
+  }
+
+  private getApiReference(
+    evidence: EventEvidence
+  ): CalendarApiEventReference | undefined {
+    if (evidence.attribute !== "data-eventid") {
+      return undefined;
+    }
+
+    try {
+      const padded = evidence.rawId
+        .replace(/-/g, "+")
+        .replace(/_/g, "/")
+        .padEnd(Math.ceil(evidence.rawId.length / 4) * 4, "=");
+      const decoded = atob(padded);
+      const separator = decoded.indexOf(" ");
+      if (separator <= 0 || separator === decoded.length - 1) {
+        return undefined;
+      }
+
+      const eventId = decoded.slice(0, separator).trim();
+      const calendarId = this.expandCalendarId(decoded.slice(separator + 1).trim());
+      if (!eventId || !calendarId) {
+        return undefined;
+      }
+
+      return { calendarId, eventId };
+    } catch {
+      debugLog("Calendar API reference could not be decoded", {
+        rawId: evidence.rawId
+      });
+      return undefined;
+    }
+  }
+
+  private expandCalendarId(calendarId: string): string | undefined {
+    // TODO(calendar-selector): These compact domains were observed in
+    // Calendar's data-eventid payload. Keep this mapping conservative and
+    // refuse unknown compact domains rather than risking deletion on the wrong
+    // calendar. The actual deletion request uses only the documented API.
+    const compactDomains: Readonly<Record<string, string>> = {
+      m: "gmail.com",
+      g: "group.calendar.google.com",
+      v: "group.v.calendar.google.com"
+    };
+    const compactMatch = /^(.*)@([a-z])$/.exec(calendarId);
+    if (!compactMatch) {
+      return calendarId;
+    }
+
+    const [, localPart, compactDomain] = compactMatch;
+    const expandedDomain = compactDomains[compactDomain ?? ""];
+    return localPart && expandedDomain
+      ? `${localPart}@${expandedDomain}`
+      : undefined;
   }
 
   private firstNonEmptyAttribute(
@@ -250,18 +397,14 @@ export class GoogleCalendarAdapter implements CalendarAdapter {
     return "unknown";
   }
 
-  async deleteEvent(
-    _event: SelectedCalendarEvent
-  ): Promise<CalendarDeleteResult> {
-    debugLog("Delete requested, but no verified Calendar delete path is configured");
+  async deleteEvent(event: SelectedCalendarEvent): Promise<CalendarDeleteResult> {
+    if (!event.apiReference) {
+      return {
+        status: "unsupported",
+        reason: "This item does not expose a safe Google Calendar API identifier."
+      };
+    }
 
-    // TODO(calendar-selector): Implement only after the event-opening target,
-    // delete button, confirmation behavior, and completion signal are verified.
-    // Do not replace this with calls to undocumented Google network endpoints.
-    return {
-      status: "unsupported",
-      reason:
-        "Automatic deletion is paused because this Google Calendar layout has not been verified. No events were changed."
-    };
+    return this.apiClient.deleteEvent(event.apiReference);
   }
 }
