@@ -1,0 +1,14 @@
+{
+  "name": "google-calendar-bulk-selector",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A lightweight Chrome extension for selecting Google Calendar events in bulk.",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.9",
+    "typescript": "^5.9.2"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Calendar Bulk Select",
+  "version": "0.1.0",
+  "description": "Adds lightweight bulk selection controls to Google Calendar.",
+  "content_scripts": [
+    {
+      "matches": ["https://calendar.google.com/*"],
+      "js": ["content.js"],
+      "css": ["calendar.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
