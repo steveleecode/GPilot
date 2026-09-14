@@ -63,16 +63,31 @@ export class SelectionManager {
       return;
     }
 
-    const visibleById = new Map(events.map((event) => [event.id, event]));
+    const visibleById = new Map<string, SelectedCalendarEvent[]>();
+    for (const event of events) {
+      const representations = visibleById.get(event.id) ?? [];
+      representations.push(event);
+      visibleById.set(event.id, representations);
+    }
     let changed = false;
 
     for (const [id, selectedEvent] of this.selected) {
-      const visibleEvent = visibleById.get(id);
-      if (!visibleEvent) {
+      const visibleRepresentations = visibleById.get(id);
+      if (!visibleRepresentations || visibleRepresentations.length === 0) {
         this.selected.delete(id);
         changed = true;
-      } else if (visibleEvent.element !== selectedEvent.element) {
-        this.selected.set(id, visibleEvent);
+        continue;
+      }
+
+      const currentRepresentation = visibleRepresentations.find(
+        (event) => event.element === selectedEvent.element
+      );
+      if (!currentRepresentation) {
+        const replacement = visibleRepresentations[0];
+        if (!replacement) {
+          continue;
+        }
+        this.selected.set(id, replacement);
         changed = true;
       }
     }

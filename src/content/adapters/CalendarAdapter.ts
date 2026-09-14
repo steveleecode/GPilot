@@ -1,13 +1,10 @@
 import type {
   CalendarDeleteResult,
-  CalendarEventMetadata,
   SelectedCalendarEvent
 } from "../../shared/types";
 
 export interface CalendarAdapter {
   getObservationRoot(): HTMLElement | null;
-  findEvents(): HTMLElement[];
-  getEventId(element: HTMLElement): string | null;
-  getEventMetadata(element: HTMLElement): CalendarEventMetadata;
+  findEvents(): SelectedCalendarEvent[];
   deleteEvent(event: SelectedCalendarEvent): Promise<CalendarDeleteResult>;
 }

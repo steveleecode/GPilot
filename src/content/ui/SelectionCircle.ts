@@ -36,6 +36,29 @@ export class SelectionCircle {
     this.element.setAttribute("aria-label", selected ? "Deselect event" : "Select event");
   }
 
+  setHovered(hovered: boolean): void {
+    this.element.classList.toggle("gcbulk-selector-visible", hovered);
+  }
+
+  setPosition(rect: DOMRect | null): void {
+    const visible =
+      rect !== null &&
+      rect.width > 0 &&
+      rect.height > 0 &&
+      rect.bottom > 0 &&
+      rect.right > 0 &&
+      rect.top < window.innerHeight &&
+      rect.left < window.innerWidth;
+
+    this.element.classList.toggle("gcbulk-selector-positioned", visible);
+    if (!visible || !rect) {
+      return;
+    }
+
+    this.element.style.left = `${Math.max(0, rect.right - 16)}px`;
+    this.element.style.top = `${Math.max(0, rect.top + 2)}px`;
+  }
+
   destroy(): void {
     this.element.remove();
   }

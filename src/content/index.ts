@@ -17,7 +17,7 @@ function initialize(): void {
 
   const adapter = new GoogleCalendarAdapter();
   const selectionManager = new SelectionManager();
-  const decorator = new EventDecorator(adapter, selectionManager);
+  const decorator = new EventDecorator(selectionManager);
   const observer = new CalendarObserver(adapter, decorator, selectionManager);
   const toolbar = new SelectionToolbar(
     selectionManager,
